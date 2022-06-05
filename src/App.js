@@ -7,49 +7,61 @@ import {
   Switch,
   Slider,
   debounce,
+  Button,
 } from "@mui/material";
 
 function App() {
   const [value, setValue] = React.useState(0);
   const [pitch, setPitch] = React.useState(50);
-  const [yaw, setYaw] = React.useState(0);
+  const [yaw, setYaw] = React.useState(50);
   const [roll, setRoll] = React.useState(50);
   const [arm, setArm] = React.useState(false);
 
   const handleArm = (state) => {
     if (state) {
-      axios
-        .post("http://192.168.0.108:8000/nav/arm/", { arm: true })
-        .then(() => {
-          setArm(state);
-        });
+      axios.post("http://localhost:8000/nav/arm/", { arm: true }).then(() => {
+        setArm(state);
+      });
     } else {
-      axios
-        .post("http://192.168.0.108:8000/nav/arm/", { arm: false })
-        .then(() => {
-          setArm(state);
-        });
+      axios.post("http://localhost:8000/nav/arm/", { arm: false }).then(() => {
+        setArm(state);
+      });
     }
   };
 
-  const handleNav = (val) => {
-    let thr = 1000 + val * 10;
-    setValue(val);
+  const handleNav = (thr, pit, rol, ya) => {
+    thr = 1000 + thr * 10;
+    pit = 1000 + pit * 10;
+    rol = 1000 + rol * 10;
+    ya = 1000 + ya * 10;
     axios
-      .post("http://192.168.0.108:8000/nav/throttle/", {
+      .post("http://localhost:8000/nav/throttle/", {
         thr: thr,
+        pitch: pit,
+        roll: rol,
+        yaw: ya,
       })
       .then((res) => {
-        console.log(res.data);
+        console.log(thr, pit, rol, ya);
+      })
+      .catch((err) => {
+        console.log(err);
       });
   };
 
   const delayedHandleNav = React.useCallback(
-    debounce((e) => {
-      handleNav(e);
+    debounce((e, f, g, h) => {
+      handleNav(e, f, g, h);
     }, 50),
     []
   );
+
+  const setDefault = () => {
+    setPitch(50);
+    setRoll(50);
+    setYaw(50);
+    delayedHandleNav(value, 50, 50, 50);
+  };
 
   return (
     <div className="App">
@@ -71,30 +83,47 @@ function App() {
         <Slider
           value={value}
           onChange={(e) => {
-            delayedHandleNav(e.target.value);
+            setValue(e.target.value);
+            delayedHandleNav(e.target.value, pitch, roll, yaw);
           }}
         />
+        <p>{value * 10 + 1000}</p>
         Pitch
         <Slider
           value={pitch}
           onChange={(e) => {
             setPitch(e.target.value);
+            delayedHandleNav(value, e.target.value, roll, yaw);
           }}
         />
+        <p>{pitch * 10 + 1000}</p>
         Roll
         <Slider
           value={roll}
           onChange={(e) => {
             setRoll(e.target.value);
+            delayedHandleNav(value, pitch, e.target.value, yaw);
           }}
         />
+        <p>{roll * 10 + 1000}</p>
         Yaw
         <Slider
           value={yaw}
           onChange={(e) => {
             setYaw(e.target.value);
+            delayedHandleNav(value, pitch, roll, e.target.value);
           }}
         />
+        <p>{yaw * 10 + 1000}</p>
+        <Button
+          color="primary"
+          variant="contained"
+          onClick={() => {
+            setDefault();
+          }}
+        >
+          Set default
+        </Button>
       </div>
     </div>
   );
